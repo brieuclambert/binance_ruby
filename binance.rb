@@ -1,11 +1,14 @@
 require 'httparty'
 require 'json'
+require 'date'
+require "base64"
+require 'openssl'
 
 class Binance
   include HTTParty
   base_uri 'https://www.binance.com/api'
 
-  def initialize(api_key=nil, api_secret=nil, options={})
+  def initialize(api_key, api_secret, options={})
     @api_key      = api_key
     @api_secret   = api_secret
     @base_uri     = options[:base_uri] ||= 'https://www.binance.com/api'
@@ -61,10 +64,32 @@ class Binance
   ###### Private Data #######
   ###########################
 
+  def get_account
+    response = get_private '/account?'
+  end
+
+  def get_private(method, opts={})
+    data = '&timestamp=' + timestamp
+    url = @base_uri + '/v3' + method + data + "&signature=" + signature(timestamp, @api_secret)
+    header = {"X-MBX-APIKEY": @api_key }
+    r = self.class.get(url, query: opts, headers: header)
+    resp = JSON.parse(r.body)
+  end
+
+  def timestamp
+    timestamp = DateTime.now.strftime('%Q').to_s
+  end
+
+  def signature(timestamp, key)
+  data = '&timestamp=' + timestamp
+  digest = OpenSSL::Digest.new('sha256')
+  signature = OpenSSL::HMAC.hexdigest(digest, key, data)
+  p signature
+  end
 end
 
-
-
+binance = Binance.new(api_key, api_secret)
+p binance.get_account
 
 
 
