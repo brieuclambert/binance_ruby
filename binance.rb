@@ -1,7 +1,6 @@
 require 'httparty'
 require 'json'
 require 'date'
-require "base64"
 require 'openssl'
 
 class Binance
