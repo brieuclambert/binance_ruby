@@ -8,7 +8,7 @@ class Binance
   include HTTParty
   base_uri 'https://www.binance.com/api'
 
-  def initialize(api_key, api_secret, options={})
+  def initialize(api_key=nil, api_secret=nil, options={})
     @api_key      = api_key
     @api_secret   = api_secret
     @base_uri     = options[:base_uri] ||= 'https://www.binance.com/api'
@@ -71,12 +71,66 @@ class Binance
   # Mandatory parameters for order : symbol side type timeInForce quantity price
 
   def test_order(opts={})
-    required_opts = %w{ symbol side type timeInForce quantity price }
-      leftover = required_opts - opts.keys.map(&:to_s)
-      if leftover.length > 0
-        raise ArgumentError.new("Required options, not given. Input must include #{leftover}")
-      end
+    opts[:type] == "MARKET" ? required_opts = %w{ symbol side type timeInForce quantity price } : required_opts = %w{ symbol side type quantity }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0
+      raise ArgumentError.new("Required options, not given. Input must include #{leftover}")
+    end
     response = post_private '/order/test?', opts
+  end
+
+  def set_order(opts={})
+    opts[:type] == "MARKET" ? required_opts = %w{ symbol side type timeInForce quantity price } : required_opts = %w{ symbol side type quantity }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0
+      raise ArgumentError.new("Required options, not given. Input must include #{leftover}")
+    end
+    response = post_private '/order?', opts
+  end
+
+  def get_order(opts={})
+    required_opts = %w{ symbol }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0 || (opts["orderId"].nil? && opts["origClientOrderId"].nil?)
+      raise ArgumentError.new("Required options not given : symbol and either orderId or origClientOrderId}")
+    end
+    response = get_private '/order?', opts
+  end
+
+  def get_open_orders(opts={})
+    required_opts = %w{ symbol }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0
+      raise ArgumentError.new("Required options, not given. Input must include #{leftover}")
+    end
+    response = get_private '/openOrders?', opts
+  end
+
+  def get_all_orders(opts={})
+    required_opts = %w{ symbol }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0
+      raise ArgumentError.new("Required options, not given. Input must include #{leftover}")
+    end
+    response = get_private '/allOrders?', opts
+  end
+
+  def get_trades(opts={})
+    required_opts = %w{ symbol }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0
+      raise ArgumentError.new("Required options, not given. Input must include #{leftover}")
+    end
+    response = get_private '/myTrades?', opts
+  end
+
+  def cancel_order(opts={})
+    required_opts = %w{ symbol }
+    leftover = required_opts - opts.keys.map(&:to_s)
+    if leftover.length > 0 || (opts["orderId"].nil? && opts["origClientOrderId"].nil?)
+      raise ArgumentError.new("Required options not given : symbol and either orderId or origClientOrderId}")
+    end
+    response = delete_private '/order?', opts
   end
 
 private
@@ -94,6 +148,12 @@ private
   def post_private(method, opts={})
     header = {"X-MBX-APIKEY":@api_key }
     r = self.class.post(set_request(method, opts), headers: header)
+    resp = JSON.parse(r.body)
+  end
+
+  def delete_private(method, opts={})
+    header = {"X-MBX-APIKEY":@api_key }
+    r = self.class.delete(set_request(method, opts), headers: header)
     resp = JSON.parse(r.body)
   end
 
@@ -115,25 +175,3 @@ private
     return url
   end
 end
-binance = Binance.new(api_key, api_secret)
-# p binance.get_account('recvWindow' => '10000')
-p binance.test_order('symbol' => 'LTCBTC',
-                     'side' => 'BUY',
-                     'type' => 'LIMIT',
-                     'timeInForce' => 'GTC',
-                     'quantity' => '1',
-                     'price' => '0.001')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
